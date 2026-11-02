@@ -47,7 +47,12 @@ app.post("/events", async(req, res) => {
     res.send("Event created successfully");
 })
 
-
+// get the event data from DB in upcoming events page
+// http://localhost:5000/upcoming-events
+app.get("/upcoming-events", async (req, res) => {
+  const result = await eventsCollection.find({}).toArray();
+  res.send(result);
+})
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
