@@ -54,12 +54,84 @@ app.get("/upcoming-events", async (req, res) => {
   res.send(result);
 })
 
-// create a single event page with the event id
+
+
+// Get events created by a particular user
+app.get("/user-events/:email", async (req, res) => {
+  
+    const { email } = req.params;
+
+    const result = await eventsCollection.find({ creatorEmail: email }).toArray();
+
+    res.send(result);
+  
+});
+
+
+// Get a single event by ID
 app.get("/events/:id", async (req, res) => {
-  const {id} = req.params;
-  const result = await eventsCollection.findOne({ _id: new ObjectId(id) });
-  res.send(result);
-})
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid event ID",
+      });
+    }
+
+    const event = await eventsCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!event) {
+      return res.status(404).send({
+        message: "Event not found",
+      });
+    }
+
+    res.status(200).send(event);
+  } catch (error) {
+    console.error("Error fetching event:", error);
+
+    res.status(500).send({
+      message: "Failed to fetch event",
+    });
+  }
+});
+
+
+
+app.patch("/events/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { _id, ...updatedData } = req.body;
+
+    const result = await eventsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updatedData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({
+        message: "Event not found",
+      });
+    }
+
+    
+    res.status(200).send({
+      message: "Event updated successfully",
+    });
+
+  } catch (error) {
+    console.error("Error updating event:", error);
+
+    res.status(500).send({
+      message: "Failed to update event",
+    });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
