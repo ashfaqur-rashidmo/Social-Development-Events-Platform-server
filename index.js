@@ -32,6 +32,8 @@ const db = mongoClient.db("social-events");
 
 const eventsCollection = db.collection("events");
 
+const joinedCollection = db.collection("joinedEvents");
+
 
 app.get("/", (req, res) => {
   res.send("Server is running");
@@ -139,6 +141,57 @@ app.delete("/events/:id", async (req, res) => {
 
    res.json("Deleted Successfully",result);
 })
+
+
+app.post("/joined-events", async (req, res) => {
+  try {
+    const data = req.body;
+
+    const result = await joinedCollection.insertOne({
+      eventId: new ObjectId(data.eventId),
+      userEmail: data.userEmail,
+      joinedAt: new Date(),
+    });
+
+    console.log("Joined event created:", result.insertedId);
+
+    res.status(201).json({
+      message: "Joined event created successfully",
+    });
+  } catch (error) {
+    console.error("Error creating joined event:", error);
+    res.status(500).json({
+      message: "Failed to join event",
+    });
+  }
+});
+
+
+app.get("/joined-events/:email", async (req, res) => {
+  const { email } = req.params;
+
+  // Find events joined by this user
+  const joinedEvents = await joinedCollection
+    .find({ userEmail: email })
+    .toArray();
+
+  // Get the actual event details
+  const events = [];
+
+  for (const joined of joinedEvents) {
+    const event = await eventsCollection.findOne({
+      _id: joined.eventId,
+    });
+
+    if (event) {
+      events.push(event);
+    }
+  }
+
+  res.send(events);
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
