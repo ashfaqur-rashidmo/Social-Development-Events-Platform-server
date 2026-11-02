@@ -37,3 +37,18 @@ app.get("/", (req, res) => {
   res.send("Server is running");
 });
 
+// create a new event
+// http://localhost:5000/events
+app.post("/events", async(req, res) => {
+    const data = req.body;
+    const result = await eventsCollection.insertOne(data);
+    console.log("Event created:", result);
+    console.log("Event data:", data);
+    res.send("Event created successfully");
+})
+
+
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
