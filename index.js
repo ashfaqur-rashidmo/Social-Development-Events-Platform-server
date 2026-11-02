@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { MongoClient } from 'mongodb';
+import { MongoClient,ObjectId } from 'mongodb';
 import 'dotenv/config'
 
 
@@ -51,6 +51,13 @@ app.post("/events", async(req, res) => {
 // http://localhost:5000/upcoming-events
 app.get("/upcoming-events", async (req, res) => {
   const result = await eventsCollection.find({}).toArray();
+  res.send(result);
+})
+
+// create a single event page with the event id
+app.get("/events/:id", async (req, res) => {
+  const {id} = req.params;
+  const result = await eventsCollection.findOne({ _id: new ObjectId(id) });
   res.send(result);
 })
 
