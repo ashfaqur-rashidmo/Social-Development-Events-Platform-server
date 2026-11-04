@@ -222,6 +222,9 @@ app.post("/joined-events", verifyToken, async (req, res) => {
 });
 
 
+
+
+
 // protected
 app.get("/joined-events/:email", verifyToken, async (req, res) => {
   const { email } = req.params;
@@ -246,6 +249,9 @@ app.get("/joined-events/:email", verifyToken, async (req, res) => {
 
   res.send(events);
 });
+
+
+
 
 
 
