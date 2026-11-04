@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { MongoClient,ObjectId } from 'mongodb';
 import 'dotenv/config'
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 
 const app = express();
@@ -35,13 +36,64 @@ const eventsCollection = db.collection("events");
 const joinedCollection = db.collection("joinedEvents");
 
 
+const JWKS = createRemoteJWKSet(
+  new URL("http://localhost:3000/api/auth/jwks")
+);
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      msg: "Unauthorized: Token missing",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      msg: "Unauthorized: Token missing",
+    });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+
+    // Store verified user information
+    req.user = payload;
+
+    console.log("Authenticated user:", req.user.email);
+
+    // Continue to the protected route
+    next();
+
+  } catch (error) {
+    console.error("JWT verification failed:", error.message);
+
+    return res.status(401).json({
+      msg: "Unauthorized: Invalid or expired token",
+    });
+  }
+};
+
+
+
+
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
 
+
 // create a new event
 // http://localhost:5000/events
-app.post("/events", async(req, res) => {
+// protected
+app.post("/events", verifyToken,  async(req, res) => {
+    
+    const authHeader = req.headers.authorization;
+    console.log("Authorization header:", authHeader);
+    
+
     const data = req.body;
     const result = await eventsCollection.insertOne(data);
     console.log("Event created:", result);
@@ -59,7 +111,8 @@ app.get("/upcoming-events", async (req, res) => {
 
 
 // Get events created by a particular user
-app.get("/user-events/:email", async (req, res) => {
+// protected
+app.get("/user-events/:email", verifyToken, async (req, res) => {
   
     const { email } = req.params;
 
@@ -102,8 +155,8 @@ app.get("/events/:id", async (req, res) => {
 });
 
 
-
-app.patch("/events/:id", async (req, res) => {
+// protected
+app.patch("/events/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { _id, ...updatedData } = req.body;
@@ -134,7 +187,8 @@ app.patch("/events/:id", async (req, res) => {
 });
 
 
-app.delete("/events/:id", async (req, res) => {
+// protected
+app.delete("/events/:id", verifyToken, async (req, res) => {
    const { id } = req.params;
 
    const result = await eventsCollection.deleteOne({ _id: new ObjectId(id) });
@@ -143,7 +197,8 @@ app.delete("/events/:id", async (req, res) => {
 })
 
 
-app.post("/joined-events", async (req, res) => {
+// protected
+app.post("/joined-events", verifyToken, async (req, res) => {
   try {
     const data = req.body;
 
@@ -167,7 +222,8 @@ app.post("/joined-events", async (req, res) => {
 });
 
 
-app.get("/joined-events/:email", async (req, res) => {
+// protected
+app.get("/joined-events/:email", verifyToken, async (req, res) => {
   const { email } = req.params;
 
   // Find events joined by this user
